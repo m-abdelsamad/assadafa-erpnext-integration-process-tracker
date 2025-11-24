@@ -1,24 +1,15 @@
-// src/pages/ProcessDetail.tsx (or wherever you keep it)
+// src/pages/ProcessDetail.tsx
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronRightIcon } from 'lucide-react';
-import {
-  ProcessDto,
-  ProcessEventDto,
-  RfqStateDto,
-  PoStateDto,
-  PagedList
-} from '../types';
-import {
-  formatDateWithSeconds,
-  getRouteLabel,
-  getStatusLabel
-} from '../utils/formatters';
+import { ProcessDto, ProcessEventDto, RfqStateDto, PoStateDto, PagedList } from '../types';
+import { formatDateWithSeconds, getRouteLabel, getStatusLabel } from '../utils/formatters';
 import { ProcessEvents } from '../components/ProcessEvents';
 import { ProcessDetails } from '../components/ProcessDetails';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { useApi, ApiError } from '../hooks/useApi';
+import { useAuditNotifications } from '../hooks/useAuditNotifications';
 
 export function ProcessDetail() {
   const { correlationId } = useParams<{ correlationId: string }>();
@@ -57,8 +48,8 @@ export function ProcessDetail() {
     method: 'GET'
   });
 
-  // GET /api/process-events?correlationId=...&pageNumber=1&pageSize=200
-  // (We fetch a large page once, then paginate in the UI)
+  // GET /api/process-events?correlationId=...
+  // Backend defaults pageSize to 250 which is more than enough
   const { execute: fetchEvents } = useApi<PagedList<ProcessEventDto>, void>({
     path: '/process-events',
     method: 'GET'
@@ -131,11 +122,7 @@ export function ProcessDetail() {
         setEventsLoading(true);
 
         const response = await fetchEvents({
-          query: {
-            correlationId,
-            pageNumber: 1,
-            pageSize: 200 // enough for most processes; UI will page locally
-          }
+          query: { correlationId }
         });
 
         if (isCancelled) return;
@@ -235,10 +222,7 @@ export function ProcessDetail() {
     };
   }, [process, correlationId, fetchRfqState, fetchPoState]);
 
-  // -------- TODO: SignalR integration hook point --------
-  // Later you can create a custom hook like:
-  // useAuditNotifications(correlationId, { setProcess, setEvents, setRfqState, setPoState })
-  // which:
+  // -------- SignalR integration --------
   // - connects to /api/hubs/audit
   // - subscribes via SubscribeToCorrelationId(correlationId)
   // - handles:
@@ -246,6 +230,61 @@ export function ProcessDetail() {
   //   - ProcessEventUpdated -> append dto to events.items
   //   - RfqStateUpdated -> setRfqState(dto)
   //   - PoStateUpdated -> setPoState(dto)
+  useAuditNotifications(correlationId, {
+    onProcessUpdated: dto => {
+      // Trust backend as source of truth; just replace
+      setProcess(dto);
+    },
+    onProcessEventUpdated: dto => {
+      setEvents(prev => {
+        // If we had no events yet, create a new PagedList wrapper
+        if (!prev) {
+          return {
+            items: [dto],
+            pageNumber: 1,
+            pageSize: 250,
+            totalCount: 1,
+            hasNextPage: false,
+            hasPreviousPage: false
+          };
+        }
+
+        const existingIndex = prev.items.findIndex(e => e.id === dto.id);
+        let items: ProcessEventDto[];
+
+        if (existingIndex >= 0) {
+          // Replace existing event
+          items = [...prev.items];
+          items[existingIndex] = dto;
+        } else {
+          // Append and keep them sorted by time (optional)
+          items = [...prev.items, dto].sort(
+            (a, b) =>
+              new Date(a.receivedAt).getTime() -
+              new Date(b.receivedAt).getTime()
+          );
+        }
+
+        return {
+          ...prev,
+          items,
+          totalCount: items.length,
+          hasNextPage: false,
+          hasPreviousPage: false
+        };
+      });
+    },
+    onRfqStateUpdated: dto => {
+      setRfqState(dto);
+      setStateError(null);
+    },
+    onPoStateUpdated: dto => {
+      setPoState(dto);
+      setStateError(null);
+    }
+  });
+
+  // -------- Render --------
 
   if (processLoading) {
     return (

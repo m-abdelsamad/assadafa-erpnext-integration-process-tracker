@@ -1,7 +1,6 @@
 // src/hooks/useApi.ts
 import { useCallback, useState } from 'react';
-
-export const API_BASE_URL = 'http://localhost:5000/api';
+import { API_BASE_URL } from '../config/apiConfig';
 
 export type HttpMethod = 'GET' | 'POST';
 
@@ -89,12 +88,14 @@ export function useApi<TResponse, TBody = unknown>(config: UseApiConfig) {
       try {
         const response = await fetch(fullUrl, {
           method,
-          headers: method === 'POST'
-            ? { 'Content-Type': 'application/json' }
-            : undefined,
-          body: method === 'POST' && options?.body
-            ? JSON.stringify(options.body)
-            : undefined,
+          headers:
+            method === 'POST'
+              ? { 'Content-Type': 'application/json' }
+              : undefined,
+          body:
+            method === 'POST' && options?.body
+              ? JSON.stringify(options.body)
+              : undefined,
           signal: options?.signal
         });
 
