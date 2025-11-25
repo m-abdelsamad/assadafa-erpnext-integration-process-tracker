@@ -408,3 +408,6 @@ FodyWeavers.xsd
 **/Certificates/private/*
 **/Certificates/certs/*
 **/Certificates/Peer/certs/*
+
+**/.vscode/
+**/dist/

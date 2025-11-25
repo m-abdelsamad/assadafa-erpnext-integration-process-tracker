@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  processtracker-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: erpnext-processtracker-dashboard:${IMAGE_TAG:-latest}
+    container_name: processtracker-dashboard
+    ports:
+      - '3000:80'
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
