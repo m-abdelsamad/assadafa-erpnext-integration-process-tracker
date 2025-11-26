@@ -63,3 +63,22 @@ export interface PagedList<T> {
   nextPage?: number | null;
   previousPage?: number | null;
 }
+export interface ContactProcurementItemRequest {
+  partNumber: string;
+  description: string | null;
+  quantity: number;
+}
+
+export interface ContactProcurementRequest {
+  requesterEmail: string;
+  correlationId: string;
+  customerName: string | null;
+  items: ContactProcurementItemRequest[];
+}
+
+export interface ContactProcurementResponse {
+  correlationId: string;
+  message: string;
+  customerName: string | null;
+  validItems: ContactProcurementItemRequest[];
+}

@@ -73,7 +73,10 @@ export function ProcessEvents({ events, loading }: ProcessEventsProps) {
               <p className="text-xs font-medium text-red-800 mb-1">Errors:</p>
               <ul className="list-disc list-inside space-y-1">
                 {event.errorMessages.map((error, index) => (
-                  <li key={index} className="text-sm text-red-700">
+                  <li
+                    key={index}
+                    className="text-sm text-red-700 whitespace-pre-wrap"
+                  >
                     {error}
                   </li>
                 ))}
@@ -87,7 +90,10 @@ export function ProcessEvents({ events, loading }: ProcessEventsProps) {
               </p>
               <ul className="list-disc list-inside space-y-1">
                 {event.warningMessages.map((warning, index) => (
-                  <li key={index} className="text-sm text-yellow-700">
+                  <li
+                    key={index}
+                    className="text-sm text-yellow-700 whitespace-pre-wrap"
+                  >
                     {warning}
                   </li>
                 ))}

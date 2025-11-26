@@ -52,7 +52,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
     const apiError: ApiError = {
       statusCode: errorBody?.statusCode ?? response.status,
       error: errorBody?.error ?? response.statusText,
-      message: errorBody?.message ?? 'An unexpected error occurred'
+      message: errorBody?.message ?? errorBody?.Message ?? 'An unexpected error occurred'
     };
 
     throw apiError;

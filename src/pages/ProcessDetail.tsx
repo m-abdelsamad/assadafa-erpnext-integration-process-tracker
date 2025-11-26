@@ -284,6 +284,10 @@ export function ProcessDetail() {
     }
   });
 
+  // --- NEW: hasContactedProcurement flag derived from events ---
+  const hasContactedProcurement =
+    events?.items.some(e => e.eventType === 'ContactedProcurement') ?? false;
+
   // -------- Render --------
 
   if (processLoading) {
@@ -452,6 +456,7 @@ export function ProcessDetail() {
                 poState={poState}
                 loading={stateLoading}
                 error={stateError}
+                hasContactedProcurement={hasContactedProcurement}
               />
             )}
           </div>
