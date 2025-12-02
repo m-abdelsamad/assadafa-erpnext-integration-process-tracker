@@ -3,9 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProcessDto, PagedList } from '../types';
 import { formatDate, getRouteLabel, getStatusLabel } from '../utils/formatters';
-import { FilterBuilder, Filter } from '../components/FilterBuilder';
-import { FilterXIcon } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
+import { useProcessFilters } from '../hooks/useProcessFilters';
+import { ProcessFiltersBar } from '../components/ProcessFiltersBar';
 
 const DEFAULT_PAGE_SIZE = 500;
 
@@ -23,22 +23,27 @@ export function ProcessList() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [quickFilters, setQuickFilters] = useState({
-    correlationId: '',
-    requesterEmail: '',
-    customerName: ''
-  });
-
-  const [advancedFilters, setAdvancedFilters] = useState<Filter[]>([]);
-  const [appliedFilters, setAppliedFilters] = useState<Filter[]>([]);
+  // Centralised filter state + localStorage persistence
+  const {
+    quickFilters,
+    setQuickFilters,
+    advancedFilters,
+    setAdvancedFilters,
+    appliedFilters,
+    applyAdvancedFilters,
+    clearAdvancedFilters,
+    clearAllFilters,
+    hasAnyFilters
+  } = useProcessFilters();
 
   const navigate = useNavigate();
 
   // Our generic API hook for GET /processes
-  const { execute: fetchProcesses, error: apiError } = useApi<PagedList<ProcessDto>, void>({
-    path: '/processes',
-    method: 'GET'
-  });
+  const { execute: fetchProcesses, error: apiError } =
+    useApi<PagedList<ProcessDto>, void>({
+      path: '/processes',
+      method: 'GET'
+    });
 
   // Initial load: page 1
   useEffect(() => {
@@ -116,32 +121,7 @@ export function ProcessList() {
     }
   };
 
-  const applyAdvancedFilters = () => {
-    setAppliedFilters(advancedFilters);
-  };
-
-  const clearAdvancedFilters = () => {
-    setAdvancedFilters([]);
-    setAppliedFilters([]);
-  };
-
-  const clearAllFilters = () => {
-    setQuickFilters({
-      correlationId: '',
-      requesterEmail: '',
-      customerName: ''
-    });
-    setAdvancedFilters([]);
-    setAppliedFilters([]);
-  };
-
-  const hasAnyFilters =
-    quickFilters.correlationId ||
-    quickFilters.requesterEmail ||
-    quickFilters.customerName ||
-    appliedFilters.length > 0;
-
-  const matchesFilter = (process: ProcessDto, filter: Filter): boolean => {
+  const matchesFilter = (process: ProcessDto, filter: any): boolean => {
     const fieldValue = (() => {
       switch (filter.field) {
         case 'correlationId':
@@ -224,15 +204,12 @@ export function ProcessList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">
-          Loading processes...
-        </div>
+        <div className="text-gray-600">Loading processes...</div>
       </div>
     );
   }
 
   // Optional: show API error banner
-  // (purely visual, you can tweak or remove)
   const errorBanner = apiError ? (
     <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
       {apiError.error}: {apiError.message}
@@ -248,77 +225,19 @@ export function ProcessList() {
 
         {errorBanner}
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
-          <div className="p-4">
-            <div className="flex items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3 flex-1">
-                <input
-                  type="text"
-                  placeholder="Correlation ID"
-                  value={quickFilters.correlationId}
-                  onChange={e =>
-                    setQuickFilters({
-                      ...quickFilters,
-                      correlationId: e.target.value
-                    })
-                  }
-                  className="w-48 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder="Customer"
-                  value={quickFilters.customerName}
-                  onChange={e =>
-                    setQuickFilters({
-                      ...quickFilters,
-                      customerName: e.target.value
-                    })
-                  }
-                  className="w-48 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder="Requester Email"
-                  value={quickFilters.requesterEmail}
-                  onChange={e =>
-                    setQuickFilters({
-                      ...quickFilters,
-                      requesterEmail: e.target.value
-                    })
-                  }
-                  className="w-48 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <FilterBuilder
-                  filters={advancedFilters}
-                  onFiltersChange={setAdvancedFilters}
-                  onApply={applyAdvancedFilters}
-                  onClear={clearAdvancedFilters}
-                  appliedCount={appliedFilters.length}
-                />
-                <div className="relative group">
-                  <button
-                    onClick={clearAllFilters}
-                    className="p-1.5 text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-                  >
-                    <FilterXIcon className="w-4 h-4" />
-                  </button>
-                  <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none">
-                    Clear Filters
-                    <div className="absolute top-full right-2 -mt-1 border-4 border-transparent border-t-gray-900" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-gray-200 flex justify-end">
-              <div className="text-sm text-gray-600">
-                {displayedCount} out of {totalCount}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* NEW: extracted filters card */}
+        <ProcessFiltersBar
+          quickFilters={quickFilters}
+          onQuickFiltersChange={setQuickFilters}
+          advancedFilters={advancedFilters}
+          setAdvancedFilters={setAdvancedFilters}
+          appliedFiltersCount={appliedFilters.length}
+          applyAdvancedFilters={applyAdvancedFilters}
+          clearAdvancedFilters={clearAdvancedFilters}
+          clearAllFilters={clearAllFilters}
+          displayedCount={displayedCount}
+          totalCount={totalCount}
+        />
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
@@ -411,7 +330,7 @@ export function ProcessList() {
 
           {filteredProcesses.length === 0 && (
             <div className="text-center py-12 text-gray-500">
-              No processes found matching the filters
+              No processes found.
             </div>
           )}
 
