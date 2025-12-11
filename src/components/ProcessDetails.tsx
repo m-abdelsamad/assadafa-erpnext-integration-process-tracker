@@ -136,8 +136,7 @@ export function ProcessDetails({
           </div>
           <p className="text-gray-600 leading-relaxed">
             This process has been classified as{' '}
-            <span className="font-semibold">Other</span>, which does not fall
-            into the RFQ or PO categories. It has been skipped and no additional
+            <span className="font-semibold">Other</span>. It has been skipped and no additional
             details are available.
           </p>
         </div>
